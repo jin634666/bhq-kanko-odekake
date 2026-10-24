@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BHQ観光おでかけ</title>
+<meta name="description" content="BHQ（脳の健康指標）の結果や今日の調子から、出かける距離と場所の種類を決めて、47都道府県の観光名所をすすめるサイト。決め方は論文の知見をもとにした目安です。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="BHQ観光おでかけ">
+<meta property="og:description" content="BHQの結果や今日の調子から、47都道府県の観光名所をすすめます。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 1列。上から 出発地と今日の状態 → おすすめの名所 → 決め方と論文 → 全名所のランク一覧 */
+:root{
+  --bg:#F3F4F8; --surface:#FFFFFF; --surface-2:#ECEEF4; --ink:#171A2B; --muted:#5B5F76; --line:#DADCE6;
+  --accent:#D3336A; --accent-ink:#FFFFFF; --accent-soft:#FBE6EE;
+  --live:#11905A; --live-bg:#E2F4EB; --soon:#B86E00; --soon-bg:#FBEFD9; --danger:#C0392B;
+  --gm:#C46F00;
+  --f-display:"Dela Gothic One","Hiragino Kaku Gothic StdN","Yu Gothic",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;
+  --f-mono:"DM Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#10121B; --surface:#191C29; --surface-2:#232739; --ink:#ECEDF4; --muted:#A0A4BA; --line:#2C3044;
+    --accent:#FF5E90; --accent-ink:#1A0710; --accent-soft:#3A1824;
+    --live:#38C483; --live-bg:#15392A; --soon:#F0A436; --soon-bg:#3A2C12; --danger:#FF6B5E;
+    --gm:#FFB547;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .tiny{font-size:12px} [hidden]{display:none!important}
+
+header.top{padding-block:24px 14px;border-bottom:2px solid var(--ink);display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 20px}
+header h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,5vw,38px);line-height:1.15;margin:0}
+header h1 em{font-style:normal;color:var(--accent)}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.local{font-size:11px;font-weight:700;letter-spacing:.08em;border:1.5px solid var(--muted);color:var(--muted);border-radius:4px;padding:1px 6px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.settings{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:700}
+.field select,.field input{min-height:42px;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);font-size:16px;color:var(--ink);font-weight:500}
+.field input{width:110px}
+#evinfo{flex:1 1 220px;margin:0;font-size:12px;color:var(--muted)}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.btn{min-height:44px;padding:10px 20px;border-radius:999px;border:1.5px solid var(--ink);background:transparent;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);min-width:200px}
+.btn.ghost{border-color:var(--line);color:var(--muted)}
+.btn:disabled{opacity:.45;cursor:default}
+.msg{margin:0;font-size:13.5px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);color:var(--ink)}
+.msg.err{background:color-mix(in srgb,var(--danger) 14%,var(--surface));color:var(--ink);border-left:3px solid var(--danger)}
+
+/* おすすめ */
+#rec{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.14em;font-weight:700;color:var(--accent)}
+#rec-head h2{font-family:var(--f-display);font-weight:400;font-size:clamp(24px,4.6vw,32px);margin:2px 0 6px;line-height:1.2}
+.lead{margin:0 0 6px}
+.why{margin:0;font-size:13.5px}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;font-weight:700;font-size:13px;min-height:44px}
+.chip .st{font-size:10px;color:var(--gm);letter-spacing:.04em;font-weight:500}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.chip[aria-pressed="true"] .st{color:inherit;opacity:.8}
+#rec-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+.ev{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ev-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pill{font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px}
+.ev.live .pill{background:var(--live-bg);color:var(--live)} .ev.soon .pill{background:var(--soon-bg);color:var(--soon)}
+.when{font-size:12px;color:var(--muted)}
+.ev-kind{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ktag{font-size:11px;font-weight:700;letter-spacing:.06em;padding:1px 7px;border-radius:4px;border:1.5px solid var(--ink)}
+.work{font-size:12px;color:var(--muted)}
+.ev h3{margin:0;font-size:15.5px;line-height:1.45;text-wrap:balance}
+.ev-where{display:flex;gap:8px;align-items:baseline;font-size:13.5px;min-width:0}
+.ev-where span:last-child{overflow-wrap:anywhere}
+.pref{font-weight:700;font-size:12px;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:1px 6px;white-space:nowrap}
+.dist{font-size:13px;font-weight:700;color:var(--accent)}
+.ev-link{margin-top:auto;padding-top:4px;font-size:13px;font-weight:700;color:var(--ink)}
+.hints{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.hints-ttl{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em}
+.hint{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;font-size:13.5px}
+.lv{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;white-space:nowrap;border:1.5px solid currentColor}
+.lv.hi{color:var(--accent)} .lv.lo{color:var(--muted)}
+.mtags{display:flex;flex-wrap:wrap;gap:4px}
+.mtags span{font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}
+.cite{font-size:12px;color:var(--muted)} .cite a{color:var(--muted)}
+#refsbox h2{font-size:14px;margin:0 0 8px;color:var(--muted);letter-spacing:.06em}
+#refsbox .small{font-size:13px;margin:0 0 10px}
+#refs{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+#refs a{font-weight:700;color:var(--ink);margin-right:6px}
+#refs span{color:var(--muted)}
+#refsbox .sub{font-size:13px;margin:14px 0 6px}
+#benefits{margin:0 0 6px;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:12.5px}
+#benefits li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+#benefits span:not(.bf){color:var(--muted)}
+#benefits a{color:var(--muted)}
+:root{--gA:#11905A;--gB:#5A9E2F;--gC:#8A8DA0;--gD:#B86E00;--gE:#C0392B}
+@media (prefers-color-scheme: dark){:root{--gA:#38C483;--gB:#9BCB5A;--gC:#8E92A8;--gD:#F0A436;--gE:#FF6B5E}}
+.ranks{display:flex;gap:6px;flex-wrap:wrap}
+.rk{display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 8px;border-radius:8px;border:1.5px solid color-mix(in srgb,var(--c) 55%,var(--line));font-size:12px}
+.rk.low{border-width:2.5px;border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--surface))}
+.rkn{color:var(--muted);font-weight:700}
+.g{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;font-family:var(--f-mono);font-weight:500;font-size:13px;color:var(--surface)}
+.gA{background:var(--gA)} .gB{background:var(--gB)} .gC{background:var(--gC)} .gD{background:var(--gD)} .gE{background:var(--gE)}
+.rkname{font-weight:700;color:var(--ink);border-left:4px solid var(--c);padding-left:6px;white-space:nowrap}
+#rankbox h2{font-size:14px;margin:0 0 8px;color:var(--muted);letter-spacing:.06em}
+.rt-tools{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+.rt-wrap{max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+#ranktable th{position:sticky;top:0;background:var(--surface);cursor:pointer;user-select:none}
+#ranktable th[aria-sort="ascending"]::after{content:" ▲";font-size:10px}
+#ranktable th[aria-sort="descending"]::after{content:" ▼";font-size:10px}
+#ranktable td{white-space:normal;vertical-align:top}
+#ranktable .c{text-align:center}
+.empty{padding:24px;text-align:center;color:var(--muted);border:1.5px dashed var(--line);border-radius:12px}
+
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--muted);font-weight:700}
+footer{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:12px}
+
+/* 公開版：今日の状態の入力 */
+.stars{color:var(--gm);letter-spacing:.08em}
+.state{display:flex;flex-direction:column;gap:14px}
+.state h2{font-size:1.1rem;margin:0}
+.modes{display:flex;gap:0;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden;width:max-content;max-width:100%}
+.modes button{border:none;background:transparent;padding:8px 16px;font-weight:700;cursor:pointer;min-height:40px}
+.modes button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.sublabel{font-size:12.5px;color:var(--muted);font-weight:700;margin:0 0 6px}
+.lvrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:4px}
+.lvrow .rkname{min-width:7.5em}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:none;background:var(--surface);padding:6px 12px;cursor:pointer;font-size:13px;min-height:38px}
+.seg button+button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);font-weight:700}
+#nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+#nums .field input{width:100%}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+.caution{font-size:13px;background:var(--surface-2);border-radius:10px;padding:10px 12px;margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1><em>BHQ</em>観光おでかけ</h1>
+      <p>BHQの結果や今日の調子から、出かける距離と場所の種類を決めて、47都道府県の観光名所をすすめます。調子がよければ遠くの名所へ、疲れ気味なら近くの自然へ。</p>
+    </div>
+  </header>
+
+  <p class="caution">このサイトのおすすめとランクは、脳のネットワークや自然環境についての研究を当てはめた<b>目安</b>です。BHQの値と出かけ先の相性を直接確かめた研究ではなく、健康への効果を約束するものではありません。BHQは医療的な判断に使うものではありません。</p>
+
+  <section class="card state" aria-label="出発地と今日の状態">
+    <div class="settings">
+      <label class="field" for="home">出発地（住んでいる都道府県）<select id="home"></select></label>
+      <span class="tiny muted" id="spotcount"></span>
+    </div>
+    <div>
+      <p class="sublabel">今日の状態の入れ方</p>
+      <div class="modes" role="group" aria-label="今日の状態の入れ方">
+        <button data-mode="manual">調子を選ぶ</button><button data-mode="bhq">BHQの結果を入れる</button>
+      </div>
+    </div>
+    <div id="mode-manual">
+      <p class="sublabel">今日の調子（全脳の星の代わり）</p>
+      <div class="chips" id="stars" role="group" aria-label="今日の調子"></div>
+      <p class="sublabel" style="margin-top:12px">3部位の高め・低め（わかる範囲で）</p>
+      <div id="levels"></div>
+    </div>
+    <div id="mode-bhq" hidden>
+      <p class="note">クイックBHQドックなどで測った結果の数値を入れてください。このサイトではBHQを計測しません。入力した値はこのブラウザにだけ保存され、どこにも送りません。</p>
+      <div id="nums"></div>
+      <p class="msg" id="bhq-note" hidden>年齢と全脳（GM）の値を入れると、おすすめが出ます。</p>
+    </div>
+  </section>
+
+  <section id="rec" aria-label="おすすめの観光名所">
+    <div id="rec-head"></div>
+    <div class="chips" id="ranges" role="group" aria-label="出かける範囲を変える"></div>
+    <div id="rec-list"></div>
+  </section>
+
+  <section class="card" id="refsbox">
+    <h2>おすすめの決め方と根拠にした論文</h2>
+    <p class="small">全脳（調子の星）で出かける距離を、社会性・認知制御・モニタリングの高め・低めで場所の種類（人と楽しむ／ひとりで静かに、頭を使う／頭を休める、にぎやか／刺激少なめ）を決めています。高め・低めは、年齢相応の値（ΔBHQ = BHQ − 125 + 年齢×0.5 が0以上）で判定します。</p>
+    <h3 class="sub">名所ごとの A〜E ランク</h3>
+    <p class="small">3部位それぞれに、良い方向にはたらきそうな度合いを A（高い）〜 E（低い）で付けています。名所の特徴（自然の多さ・にぎやかさ・人と楽しむか・段取りの多さ）を、下の研究に沿って重み付けして点数にし、決まった区切りでランクにしました。名所の特徴はこのサイトで付けた目安です。低めの部位があると、その部位でAやBの名所を上に並べ、カードでも枠を太くして強調します。</p>
+    <ul id="benefits"></ul>
+    <h3 class="sub">論文</h3>
+    <ul id="refs"></ul>
+  </section>
+
+  <section class="card" id="rankbox">
+    <h2>全名所のランク一覧</h2>
+    <div class="rt-tools"><label class="field" for="rt-region">都道府県<select id="rt-region"></select></label><span class="tiny muted" id="rt-count"></span><span class="tiny muted">見出しを押すと並べ替え</span></div>
+    <div class="tbl rt-wrap"><table id="ranktable"><thead><tr>
+      <th data-sort="pref" tabindex="0">都道府県</th><th data-sort="name" tabindex="0">名所</th>
+      <th data-sort="DMN" tabindex="0" class="c">社会性</th><th data-sort="CEN" tabindex="0" class="c">認知制御</th><th data-sort="SN" tabindex="0" class="c">モニタリング</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer>
+    <span>出かける範囲：★5 遠征（300km以上）／★4 ちょっと遠出（100〜600km）／★3 いつもの範囲（150km以内）／★2 近場（60km以内・回復しやすい場所を優先）／★1 近所でひと休み（30km以内・同）。距離は出発地の都道府県庁所在地から名所までの直線距離の目安です。</span>
+    <span>実際に出かけるかどうかは、体調・天気・予算・移動時間とあわせて決めてください。営業時間・休業日・季節の閉鎖は、出かける前に各名所の公式情報で確認してください。</span>
+    <span>名所の位置・特徴・ランクは、このサイトで付けたおおまかな目安です。入力した内容はこのブラウザにだけ保存され、サーバーには送りません。</span>
+  </footer>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
